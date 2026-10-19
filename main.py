@@ -1,4 +1,4 @@
-﻿import os
+import os
 import requests
 from flask import Flask, request
 from google import genai
@@ -27,8 +27,9 @@ def telegram_webhook():
         incoming_msg = data["message"]["text"]
         
         try:
+            # Model ismi güncellendi
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-1.5-flash",
                 contents=incoming_msg,
             )
             reply = response.text if response.text else "Gemini bos yanit dondu."
