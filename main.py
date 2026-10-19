@@ -30,7 +30,7 @@ def telegram_webhook():
         try:
             # Doğrudan hafif istek yap
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=incoming_msg,
             )
             reply = response.text if response.text else "Yanıt üretilemedi."
