@@ -1,5 +1,6 @@
 import os
 import requests
+import threading
 from flask import Flask, request
 from google import genai
 
@@ -16,6 +17,21 @@ def send_telegram_message(chat_id, text):
     except Exception as e:
         print(f"Telegram Gönderim Hatası: {e}")
 
+def process_gemini_async(chat_id, incoming_msg):
+    """Gemini yanıtını arka planda üreterek sunucunun kilitlenmesini önler."""
+    try:
+        client = genai.Client(api_key=GEMINI_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=incoming_msg,
+        )
+        reply = response.text if response.text else "Yanıt üretilemedi."
+    except Exception as e:
+        reply = f"Ajan Hatası: {str(e)}"
+        print(f"Gemini Hata Detayı: {e}")
+        
+    send_telegram_message(chat_id, reply)
+
 @app.route("/telegram", methods=['POST'])
 def telegram_webhook():
     data = request.get_json()
@@ -24,20 +40,10 @@ def telegram_webhook():
         chat_id = data["message"]["chat"]["id"]
         incoming_msg = data["message"]["text"]
         
-        try:
-            # Her istekte taze istemci oluşturarak oturum çökmesini engeller
-            client = genai.Client(api_key=GEMINI_KEY)
-            
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=incoming_msg,
-            )
-            reply = response.text if response.text else "Yanıt üretilemedi."
-        except Exception as e:
-            reply = f"Ajan Hatası: {str(e)}"
-            print(f"Gemini Hata Detayı: {e}")
-            
-        send_telegram_message(chat_id, reply)
+        # İşlemi arka plan izleğine (Thread) devret
+        threading.Thread(target=process_gemini_async, args=(chat_id, incoming_msg)).start()
+        
+    # Telegram'a beklemeden ANINDA 200 OK dön (Kilitlenmeyi ve tıkanmayı engeller)
     return "OK", 200
 
 if __name__ == "__main__":
