@@ -1,6 +1,5 @@
 import os
 import requests
-import threading
 from flask import Flask, request
 from google import genai
 
@@ -9,28 +8,16 @@ app = Flask(__name__)
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 
+# İstemciyi küresel (global) olarak tek kez başlat, bellek tasarrufu sağla
+client = genai.Client(api_key=GEMINI_KEY)
+
 def send_telegram_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        print(f"Telegram Gönderim Hatası: {e}")
-
-def process_gemini_async(chat_id, incoming_msg):
-    """Gemini yanıtını arka planda üreterek sunucunun kilitlenmesini önler."""
-    try:
-        client = genai.Client(api_key=GEMINI_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=incoming_msg,
-        )
-        reply = response.text if response.text else "Yanıt üretilemedi."
-    except Exception as e:
-        reply = f"Ajan Hatası: {str(e)}"
-        print(f"Gemini Hata Detayı: {e}")
-        
-    send_telegram_message(chat_id, reply)
+        print(f"Telegram gonderim hatasi: {e}")
 
 @app.route("/telegram", methods=['POST'])
 def telegram_webhook():
@@ -40,10 +27,19 @@ def telegram_webhook():
         chat_id = data["message"]["chat"]["id"]
         incoming_msg = data["message"]["text"]
         
-        # İşlemi arka plan izleğine (Thread) devret
-        threading.Thread(target=process_gemini_async, args=(chat_id, incoming_msg)).start()
+        try:
+            # Doğrudan hafif istek yap
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=incoming_msg,
+            )
+            reply = response.text if response.text else "Yanıt üretilemedi."
+        except Exception as e:
+            reply = f"Ajan Hatasi: {str(e)}"
+            print(f"Gemini hatasi: {e}")
+            
+        send_telegram_message(chat_id, reply)
         
-    # Telegram'a beklemeden ANINDA 200 OK dön (Kilitlenmeyi ve tıkanmayı engeller)
     return "OK", 200
 
 if __name__ == "__main__":
