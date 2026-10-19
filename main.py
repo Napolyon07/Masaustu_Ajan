@@ -8,9 +8,6 @@ app = Flask(__name__)
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 
-# Gemini SDK İstemcisi
-client = genai.Client(api_key=GEMINI_KEY)
-
 def send_telegram_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
@@ -28,9 +25,11 @@ def telegram_webhook():
         incoming_msg = data["message"]["text"]
         
         try:
-            # SDK'nın ısrarla istediği güncel model
+            # Her istekte taze istemci oluşturarak oturum çökmesini engeller
+            client = genai.Client(api_key=GEMINI_KEY)
+            
             response = client.models.generate_content(
-                model="gemini-3.8-flash",
+                model="gemini-2.5-flash",
                 contents=incoming_msg,
             )
             reply = response.text if response.text else "Yanıt üretilemedi."
