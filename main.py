@@ -8,7 +8,7 @@ app = Flask(__name__)
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 
-# Standard Gemini Client
+# Gemini SDK İstemcisi
 client = genai.Client(api_key=GEMINI_KEY)
 
 def send_telegram_message(chat_id, text):
@@ -17,7 +17,7 @@ def send_telegram_message(chat_id, text):
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        print(f"Telegram hatasi: {e}")
+        print(f"Telegram Gönderim Hatası: {e}")
 
 @app.route("/telegram", methods=['POST'])
 def telegram_webhook():
@@ -28,14 +28,15 @@ def telegram_webhook():
         incoming_msg = data["message"]["text"]
         
         try:
-            # En temel ve sorunsuz Gemini 2.5 Flash modeli
+            # SDK'nın ısrarla istediği güncel model
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=incoming_msg,
             )
             reply = response.text if response.text else "Yanıt üretilemedi."
         except Exception as e:
-            reply = f"Ajan Hatasi: {str(e)}"
+            reply = f"Ajan Hatası: {str(e)}"
+            print(f"Gemini Hata Detayı: {e}")
             
         send_telegram_message(chat_id, reply)
     return "OK", 200
