@@ -27,15 +27,15 @@ def telegram_webhook():
         incoming_msg = data["message"]["text"]
         
         try:
-            # Model ismi güncellendi
+            # Model ismi gemini-1.5-pro olarak güncellendi
             response = client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-1.5-pro",
                 contents=incoming_msg,
             )
-            reply = response.text if response.text else "Gemini bos yanit dondu."
+            reply = response.text if response.text else "Gemini boş yanıt döndü."
         except Exception as e:
-            reply = f"Gemini Hatasi: {str(e)}"
-            print(f"Gemini Hata Detayi: {e}")
+            reply = f"Gemini Hatası: {str(e)}"
+            print(f"Gemini Hata Detayı: {e}")
             
         send_telegram_message(chat_id, reply)
     return "OK", 200
