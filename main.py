@@ -29,7 +29,7 @@ def telegram_webhook():
         try:
             # Model ismi gemini-1.5-pro olarak güncellendi
             response = client.models.generate_content(
-                model="gemini-1.5-pro",
+                model="gemini-2.5-flash",
                 contents=incoming_msg,
             )
             reply = response.text if response.text else "Gemini boş yanıt döndü."
